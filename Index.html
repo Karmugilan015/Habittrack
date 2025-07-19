@@ -1,0 +1,19 @@
+import React, { useState, useEffect } from "react"; import { Card, CardContent } from "@/components/ui/card"; import { Button } from "@/components/ui/button";
+
+const habitsList = Array.from({ length: 15 }, (_, i) => Habit ${i + 1});
+
+const HabitTracker = () => { const today = new Date().toDateString(); const [habits, setHabits] = useState(() => { const saved = localStorage.getItem("habits"); const parsed = saved ? JSON.parse(saved) : {}; return parsed.date === today ? parsed.habits : habitsList.map(() => false); });
+
+useEffect(() => { localStorage.setItem("habits", JSON.stringify({ date: today, habits })); }, [habits, today]);
+
+const toggleHabit = (index) => { const newHabits = [...habits]; newHabits[index] = !newHabits[index]; setHabits(newHabits); };
+
+const resetHabits = () => { setHabits(habitsList.map(() => false)); };
+
+return ( <div className="min-h-screen p-4 bg-gradient-to-br from-gray-100 to-blue-200"> <div className="max-w-md mx-auto"> <h1 className="text-3xl font-bold mb-4 text-center">Habit Tracker</h1> <div className="grid grid-cols-1 gap-4"> {habitsList.map((habit, index) => ( <Card key={index} className={transition-all duration-200 ${ habits[index] ? "bg-green-100 border-green-400" : "" }} onClick={() => toggleHabit(index)} > <CardContent className="p-4 flex justify-between items-center"> <span className="text-lg font-medium">{habit}</span> <input type="checkbox" checked={habits[index]} readOnly /> </CardContent> </Card> ))} </div> <Button
+className="w-full mt-6 bg-red-500 hover:bg-red-600"
+onClick={resetHabits}
+> Reset for Next Day </Button> </div> </div> ); };
+
+export default HabitTracker;
+
