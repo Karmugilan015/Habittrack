@@ -1,425 +1,188 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Habit Tracker</title>
-    <style>
-        :root {
-            --primary-color: #301934;
-            --secondary-color: #301934;
-            --accent-color:#301934;
-            --background-color: #000000;
-            --text-color: #333;f5f7fa
-            --light-gray: #e0e0e0;
-            --success-color: #4caf50;
-            --danger-color: #f44336;
-        }
+import React, { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Clock, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+const habitsList = Array.from({ length: 15 }, (_, i) => `Habit ${i + 1}`);
 
-        body {
-            background-color: var(--background-color);
-            color: var(--text-color);
-            line-height: 1.6;
-            padding: 20px;
-        }
+const HabitTracker = () => {
+  const today = new Date().toDateString();
+  const [habits, setHabits] = useState(() => {
+    const saved = localStorage.getItem("habits");
+    const parsed = saved ? JSON.parse(saved) : {};
+    return parsed.date === today 
+      ? parsed.habits 
+      : habitsList.map(() => ({ 
+          completed: false, 
+          scheduledTime: { hours: 0, minutes: 0 }
+        }));
+  });
 
-        .app-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: black;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            overflow: hidden;
-        }
+  useEffect(() => {
+    localStorage.setItem("habits", JSON.stringify({ date: today, habits }));
+  }, [habits, today]);
 
-        header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+  const toggleHabit = (index) => {
+    const newHabits = [...habits];
+    newHabits[index] = {
+      ...newHabits[index],
+      completed: !newHabits[index].completed
+    };
+    setHabits(newHabits);
+  };
 
-        header h1 {
-            color: var(--primary-color);
-            margin-bottom: 5px;
-        }
-
-        .date-display {
-            font-size: 1.1rem;
-            color: var(--secondary-color);
-            font-weight: 500;
-        }
-
-        .habit-form {
-            display: flex;
-            margin-bottom: 20px;
-            gap: 10px;
-        }
-
-        .habit-form input {
-            flex: 1;
-            padding: 10px 15px;
-            border: 1px solid var(--light-gray);
-            border-radius: 5px;
-            font-size: 1rem;
-        }
-
-        .habit-form button {
-            padding: 10px 15px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.3s;
-        }
-
-        .habit-form button:hover {
-            background-color: var(--secondary-color);
-        }
-
-        .habit-container {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-bottom: 20px;
-            border: 1px solid var(--light-gray);
-            border-radius: 5px;
-        }
-
-        .habit-item {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            border-bottom: 1px solid var(--light-gray);
-            transition: background-color 0.2s;
-        }
-
-        .habit-item:last-child {
-            border-bottom: none;
-        }
-
-        .habit-item:hover {
-            background-color: rgba(0, 0, 0, 0.02);
-        }
-
-        .habit-checkbox {
-            width: 24px;
-            height: 24px;
-            margin-left: 15px;
-            cursor: pointer;
-        }
-
-        .habit-name {
-            flex: 1;
-            font-size: 1.1rem;
-        }
-
-        .habit-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .habit-actions button {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.2rem;
-            color: var(--secondary-color);
-            transition: color 0.2s;
-        }
-
-        .habit-actions button:hover {
-            color: var(--primary-color);
-        }
-
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .controls button {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.3s;
-        }
-
-        #reset-day {
-            background-color: var(--accent-color);
-            color: white;
-        }
-
-        #reset-day:hover {
-            background-color: #3da8d8;
-        }
-
-        #clear-all {
-            background-color: var(--danger-color);
-            color: white;
-        }
-
-        #clear-all:hover {
-            background-color: #d32f2f;
-        }
-
-        /* Scrollbar styling */
-        .habit-container::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .habit-container::-webkit-scrollbar-track {
-            background: var(--light-gray);
-            border-radius: 10px;
-        }
-
-        .habit-container::-webkit-scrollbar-thumb {
-            background: var(--primary-color);
-            border-radius: 10px;
-        }
-
-        .habit-container::-webkit-scrollbar-thumb:hover {
-            background: var(--secondary-color);
-        }
-
-        .empty-message {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
-
-        /* Responsive design */
-        @media (max-width: 600px) {
-            .app-container {
-                padding: 15px;
-            }
-            
-            .habit-form {
-                flex-direction: column;
-            }
-            
-            .controls {
-                flex-direction: column;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="app-container">
-        <header>
-            <h1>Daily Habit Tracker</h1>
-            <div class="date-display" id="current-date"></div>
-        </header>
-        
-        <div class="habit-form">
-            <input type="text" id="new-habit" placeholder="Enter new habit..." maxlength="50">
-            <button id="add-habit">Add Habit</button>
-        </div>
-        
-        <div class="habit-container" id="habit-list">
-            <!-- Habits will be inserted here -->
-        </div>
-        
-        <div class="controls">
-            <button id="reset-day">Reset Today's Progress</button>
-            <button id="clear-all">Clear All Habits</button>
-        </div>
-    </div>
+  const updateTime = (index, timeUnit, amount) => {
+    const newHabits = [...habits];
+    const newTime = { ...newHabits[index].scheduledTime };
     
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // DOM Elements
-            const habitList = document.getElementById('habit-list');
-            const newHabitInput = document.getElementById('new-habit');
-            const addHabitBtn = document.getElementById('add-habit');
-            const resetDayBtn = document.getElementById('reset-day');
-            const clearAllBtn = document.getElementById('clear-all');
-            const currentDateEl = document.getElementById('current-date');
-            
-            // Initialize app
-            initApp();
-            
-            // Event Listeners
-            addHabitBtn.addEventListener('click', addHabit);
-            newHabitInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') addHabit();
-            });
-            resetDayBtn.addEventListener('click', resetDay);
-            clearAllBtn.addEventListener('click', clearAllHabits);
-            
-            // Initialize the application
-            function initApp() {
-                // Display current date
-                const today = new Date();
-                currentDateEl.textContent = today.toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                });
-                
-                // Check if we need to reset completion status for a new day
-                checkDayReset();
-                
-                // Load habits from localStorage
-                loadHabits();
-            }
+    newTime[timeUnit] = Math.max(0, newTime[timeUnit] + amount);
+    
+    // Ensure minutes don't exceed 59
+    if (timeUnit === "minutes" && newTime.minutes > 59) {
+      newTime.hours += Math.floor(newTime.minutes / 60);
+      newTime.minutes = newTime.minutes % 60;
+    }
+    
+    newHabits[index] = {
+      ...newHabits[index],
+      scheduledTime: newTime
+    };
+    
+    setHabits(newHabits);
+  };
+
+  const deleteHabit = (index) => {
+    const newHabits = [...habits];
+    newHabits.splice(index, 1);
+    setHabits(newHabits);
+  };
+
+  const resetHabits = () => {
+    setHabits(habitsList.map(() => ({ 
+      completed: false, 
+      scheduledTime: { hours: 0, minutes: 0 }
+    })));
+  };
+
+  const formatTime = (time) => {
+    const hrs = time.hours.toString().padStart(2, '0');
+    const mins = time.minutes.toString().padStart(2, '0');
+    return `${hrs}:${mins}`;
+  };
+
+  return (
+    <div className="min-h-screen p-4 bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+      <div className="max-w-md mx-auto">
+        <h1 className="text-3xl font-bold mb-6 text-center text-purple-300">
+          Habit Tracker
+        </h1>
         
-            // Add a new habit
-            function addHabit() {
-                const habitName = newHabitInput.value.trim();
-                
-                if (habitName === '') {
-                    alert('Please enter a habit name');
-                    return;
-                }
-                
-                if (getHabits().length >= 15) {
-                    alert('Maximum of 15 habits allowed');
-                    return;
-                }
-                
-                const habits = getHabits();
-                
-                // Check if habit already exists
-                if (habits.some(habit => habit.name.toLowerCase() === habitName.toLowerCase())) {
-                    alert('This habit already exists');
-                    return;
-                }
-                
-                // Add new habit
-                const newHabit = {
-                    id: Date.now(),
-                    name: habitName,
-                    completed: false,
-                    lastUpdated: new Date().toDateString()
-                };
-                
-                habits.push(newHabit);
-                saveHabits(habits);
-                renderHabits();
-                
-                // Clear input
-                newHabitInput.value = '';
-            }
-            
-            // Toggle habit completion
-            function toggleHabitCompletion(habitId) {
-                const habits = getHabits();
-                const habitIndex = habits.findIndex(habit => habit.id === habitId);
-                
-                if (habitIndex !== -1) {
-                    habits[habitIndex].completed = !habits[habitIndex].completed;
-                    habits[habitIndex].lastUpdated = new Date().toDateString();
-                    saveHabits(habits);
-                    renderHabits();
-                }
-            }
-            
-            // Delete a habit
-            function deleteHabit(habitId) {
-                if (confirm('Are you sure you want to delete this habit?')) {
-                    const habits = getHabits().filter(habit => habit.id !== habitId);
-                    saveHabits(habits);
-                    renderHabits();
-                }
-            }
-            
-            // Reset all habits to incomplete for the current day
-            function resetDay() {
-                if (confirm('Reset all habits to incomplete for today?')) {
-                    const habits = getHabits().map(habit => ({
-                        ...habit,
-                        completed: false,
-                        lastUpdated: new Date().toDateString()
-                    }));
-                    saveHabits(habits);
-                    renderHabits();
-                }
-            }
-            
-            // Clear all habits
-            function clearAllHabits() {
-                if (confirm('Are you sure you want to delete ALL habits? This cannot be undone.')) {
-                    localStorage.removeItem('habits');
-                    renderHabits();
-                }
-            }
-            
-            // Check if we need to reset completion status for a new day
-            function checkDayReset() {
-                const lastReset = localStorage.getItem('lastReset');
-                const today = new Date().toDateString();
-                
-                if (lastReset !== today) {
-                    const habits = getHabits().map(habit => ({
-                        ...habit,
-                        completed: false,
-                        lastUpdated: today
-                    }));
-                    saveHabits(habits);
-                    localStorage.setItem('lastReset', today);
-                }
-            }
-            
-            // Get habits from localStorage
-            function getHabits() {
-                const habits = localStorage.getItem('habits');
-                return habits ? JSON.parse(habits) : [];
-            }
-            
-            // Save habits to localStorage
-            function saveHabits(habits) {
-                localStorage.setItem('habits', JSON.stringify(habits));
-            }
-            
-            // Load and render habits
-            function loadHabits() {
-                renderHabits();
-            }
-            
-            // Render habits to the DOM
-            function renderHabits() {
-                const habits = getHabits();
-                
-                if (habits.length === 0) {
-                    habitList.innerHTML = '<div class="empty-message">No habits added yet. Add your first habit above!</div>';
-                    return;
-                }
-                
-                habitList.innerHTML = '';
-                
-                habits.forEach(habit => {
-                    const habitEl = document.createElement('div');
-                    habitEl.className = 'habit-item';
+        <div className="grid grid-cols-1 gap-4">
+          {habits.map((habit, index) => (
+            <Card 
+              key={index} 
+              className={`transition-all duration-200 border-gray-700 
+                ${habit.completed 
+                  ? "bg-gray-800 border-purple-400" 
+                  : "bg-gray-900 hover:bg-gray-800"}`}
+            >
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start">
+                  <div 
+                    className="flex-1 cursor-pointer"
+                    onClick={() => toggleHabit(index)}
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-lg font-medium">Habit {index + 1}</span>
+                      <input 
+                        type="checkbox" 
+                        checked={habit.completed} 
+                        readOnly 
+                        className="h-5 w-5 text-purple-400 border-gray-600 rounded focus:ring-purple-300"
+                      />
+                    </div>
                     
-                    habitEl.innerHTML = `
-                        <input type="checkbox" class="habit-checkbox" ${habit.completed ? 'checked' : ''}>
-                        <span class="habit-name">${habit.name}</span>
-                        <div class="habit-actions">
-                            <button class="delete-habit" title="Delete habit">🗑️</button>
+                    <div className="flex items-center justify-between mt-3">
+                      <div className="flex items-center space-x-2">
+                        <Clock className="text-purple-300" size={18} />
+                        <span className="text-sm font-mono text-gray-300">
+                          {formatTime(habit.scheduledTime)}
+                        </span>
+                      </div>
+                      
+                      <div className="flex space-x-4">
+                        <div className="flex flex-col items-center">
+                          <button
+                            className="text-purple-300 hover:text-purple-200 p-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateTime(index, "hours", 1);
+                            }}
+                          >
+                            <ChevronUp size={16} />
+                          </button>
+                          <span className="text-xs text-gray-400">Hrs</span>
+                          <button
+                            className="text-purple-300 hover:text-purple-200 p-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateTime(index, "hours", -1);
+                            }}
+                          >
+                            <ChevronDown size={16} />
+                          </button>
                         </div>
-                    `;
-                    
-                    const checkbox = habitEl.querySelector('.habit-checkbox');
-                    const deleteBtn = habitEl.querySelector('.delete-habit');
-                    
-                    checkbox.addEventListener('change', () => toggleHabitCompletion(habit.id));
-                    deleteBtn.addEventListener('click', () => deleteHabit(habit.id));
-                    
-                    habitList.appendChild(habitEl);
-                });
-            }
-        });
-    </script>
-</body>
-</html>
+                        
+                        <div className="flex flex-col items-center">
+                          <button
+                            className="text-purple-300 hover:text-purple-200 p-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateTime(index, "minutes", 5);
+                            }}
+                          >
+                            <ChevronUp size={16} />
+                          </button>
+                          <span className="text-xs text-gray-400">Mins</span>
+                          <button
+                            className="text-purple-300 hover:text-purple-200 p-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateTime(index, "minutes", -5);
+                            }}
+                          >
+                            <ChevronDown size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <button
+                    className="ml-4 p-2 text-red-500 hover:text-red-400 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteHabit(index);
+                    }}
+                    aria-label="Delete habit"
+                  >
+                    <Trash2 size={18} className="hover:scale-110 transition-transform" />
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        
+        <Button
+          className="w-full mt-6 bg-purple-600 hover:bg-purple-700 text-white font-bold"
+          onClick={resetHabits}
+        >
+          Reset for Next Day
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+export default HabitTracker;
