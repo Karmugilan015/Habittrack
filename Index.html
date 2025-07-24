@@ -3,19 +3,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 
-const habitsList = Array.from({ length: 15 }, (_, i) => `Habit ${i + 1}`);
-
 const HabitTracker = () => {
   const today = new Date().toDateString();
   const [habits, setHabits] = useState(() => {
     const saved = localStorage.getItem("habits");
-    const parsed = saved ? JSON.parse(saved) : {};
-    return parsed.date === today 
-      ? parsed.habits 
-      : habitsList.map(() => ({ 
-          completed: false, 
-          scheduledTime: { hours: 0, minutes: 0 }
-        }));
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.date === today) {
+        return parsed.habits;
+      }
+    }
+    return Array.from({ length: 5 }, (_, i) => ({
+      name: `Habit ${i + 1}`,
+      completed: false,
+      scheduledTime: { hours: 0, minutes: 0 }
+    }));
   });
 
   useEffect(() => {
@@ -23,43 +25,46 @@ const HabitTracker = () => {
   }, [habits, today]);
 
   const toggleHabit = (index) => {
-    const newHabits = [...habits];
-    newHabits[index] = {
-      ...newHabits[index],
-      completed: !newHabits[index].completed
-    };
-    setHabits(newHabits);
+    setHabits(prev => prev.map((habit, i) => 
+      i === index ? { ...habit, completed: !habit.completed } : habit
+    ));
   };
 
   const updateTime = (index, timeUnit, amount) => {
-    const newHabits = [...habits];
-    const newTime = { ...newHabits[index].scheduledTime };
-    
-    newTime[timeUnit] = Math.max(0, newTime[timeUnit] + amount);
-    
-    // Ensure minutes don't exceed 59
-    if (timeUnit === "minutes" && newTime.minutes > 59) {
-      newTime.hours += Math.floor(newTime.minutes / 60);
-      newTime.minutes = newTime.minutes % 60;
-    }
-    
-    newHabits[index] = {
-      ...newHabits[index],
-      scheduledTime: newTime
-    };
-    
-    setHabits(newHabits);
+    setHabits(prev => prev.map((habit, i) => {
+      if (i !== index) return habit;
+      
+      const newTime = { ...habit.scheduledTime };
+      newTime[timeUnit] = Math.max(0, newTime[timeUnit] + amount);
+      
+      if (timeUnit === "minutes" && newTime.minutes > 59) {
+        newTime.hours += Math.floor(newTime.minutes / 60);
+        newTime.minutes = newTime.minutes % 60;
+      }
+      
+      return { ...habit, scheduledTime: newTime };
+    }));
   };
 
   const deleteHabit = (index) => {
-    const newHabits = [...habits];
-    newHabits.splice(index, 1);
-    setHabits(newHabits);
+    setHabits(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const addHabit = () => {
+    setHabits(prev => [
+      ...prev,
+      {
+        name: `Habit ${prev.length + 1}`,
+        completed: false,
+        scheduledTime: { hours: 0, minutes: 0 }
+      }
+    ]);
   };
 
   const resetHabits = () => {
-    setHabits(habitsList.map(() => ({ 
-      completed: false, 
+    setHabits(prev => prev.map(habit => ({
+      ...habit,
+      completed: false,
       scheduledTime: { hours: 0, minutes: 0 }
     })));
   };
@@ -77,10 +82,17 @@ const HabitTracker = () => {
           Habit Tracker
         </h1>
         
+        <Button 
+          className="w-full mb-4 bg-purple-600 hover:bg-purple-700"
+          onClick={addHabit}
+        >
+          Add New Habit
+        </Button>
+        
         <div className="grid grid-cols-1 gap-4">
           {habits.map((habit, index) => (
             <Card 
-              key={index} 
+              key={index}
               className={`transition-all duration-200 border-gray-700 
                 ${habit.completed 
                   ? "bg-gray-800 border-purple-400" 
@@ -93,7 +105,7 @@ const HabitTracker = () => {
                     onClick={() => toggleHabit(index)}
                   >
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-lg font-medium">Habit {index + 1}</span>
+                      <span className="text-lg font-medium">{habit.name}</span>
                       <input 
                         type="checkbox" 
                         checked={habit.completed} 
